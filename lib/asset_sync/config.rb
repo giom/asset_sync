@@ -39,6 +39,8 @@ module AssetSync
     # Google Storage
     attr_accessor :google_storage_secret_access_key, :google_storage_access_key_id
 
+    attr_accessor :akamai_host, :akamai_key, :akamai_key_name, :akamai_cp_code
+
     validates :existing_remote_files, :inclusion => { :in => %w(keep delete ignore) }
 
     validates :fog_provider,          :presence => true
@@ -114,6 +116,10 @@ module AssetSync
       fog_provider =~ /google/i
     end
 
+    def akamai?
+      fog_provider =~ /akamai/i
+    end
+
     def yml_exists?
       defined?(::Rails.root) ? File.exist?(self.yml_path) : false
     end
@@ -173,6 +179,11 @@ module AssetSync
       self.fog_directory          = yml["bucket"] if yml.has_key?("bucket")
       self.fog_region             = yml["region"] if yml.has_key?("region")
 
+      self.akamai_host            = yml['akamai_host'] if yml.has_key?('akamai_host')
+      self.akamai_key             = yml['akamai_key'] if yml.has_key?('akamai_key')
+      self.akamai_key_name        = yml['akamai_key_name'] if yml.has_key?('akamai_key_name')
+      self.akamai_cp_code         = yml['akamai_cp_code'] if yml.has_key?('akamai_cp_code')
+
       self.public_path            = yml["public_path"] if yml.has_key?("public_path")
     end
 
@@ -190,6 +201,13 @@ module AssetSync
             :aws_secret_access_key => aws_secret_access_key
           })
         end
+      elsif akamai?
+        options.merge!({
+          :akamai_host => akamai_host,
+          :akamai_key_name => akamai_key_name,
+          :akamai_key => akamai_key,
+          :akamai_cp_code => akamai_cp_code
+        })
       elsif rackspace?
         options.merge!({
           :rackspace_username => rackspace_username,
@@ -205,7 +223,7 @@ module AssetSync
           :google_storage_access_key_id => google_storage_access_key_id
         })
       else
-        raise ArgumentError, "AssetSync Unknown provider: #{fog_provider} only AWS, Rackspace and Google are supported currently."
+        raise ArgumentError, "AssetSync Unknown provider: #{fog_provider} only AWS, Rackspace Akamai and Google are supported currently."
       end
 
       options.merge!({:region => fog_region}) if fog_region && !rackspace?
