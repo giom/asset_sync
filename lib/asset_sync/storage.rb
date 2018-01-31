@@ -20,7 +20,7 @@ module AssetSync
     def bucket
       # fixes: https://github.com/rumblelabs/asset_sync/issues/18
 
-      if akamai?
+      if config.akamai?
         begin
           fog_directory = "/#{fog_directory}" if fog_directory !~ /\//
           fog_directory = "" if fog_directory == "/" 
