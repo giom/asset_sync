@@ -19,9 +19,19 @@ module AssetSync
 
     def bucket
       # fixes: https://github.com/rumblelabs/asset_sync/issues/18
-      @bucket ||= connection.directories.get("#{self.config.fog_directory}/#{self.config.assets_prefix}")
-    rescue
-      @bucket ||= connection.directories.new(:key => "#{self.config.fog_directory}/#{self.config.assets_prefix}")
+
+      if akamai?
+        begin
+          fog_directory = "/#{fog_directory}" if fog_directory !~ /\//
+          fog_directory = "" if fog_directory == "/" 
+
+          @bucket ||= connection.directories.get("#{fog_directory}")
+        rescue
+          @bucket ||= connection.directories.new(:key => "#{fog_directory}")
+        end
+      else
+        @bucket ||= connection.directories.get(self.config.fog_directory, :prefix => self.config.assets_prefix)
+      end
     end
 
     def log(msg)
